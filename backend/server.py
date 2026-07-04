@@ -228,7 +228,7 @@ async def generate(req: GenerateRequest):
             model="claude-sonnet-4-5-20250929",
             system=system,
             user=user,
-            max_tokens=6000,
+            max_tokens=3500,   # outputs are naturally 2–3K tokens; capping tightens latency
             timeout_s=180,
         )
         return kind, text

@@ -11,43 +11,46 @@ Build **Project Wizard** — a SaaS web app that helps users plan, organize, and
 
 The **Project DNA** is the source of truth. Every generated output is an export from that DNA.
 
-**MVP is localStorage-only** — no auth, no backend, no DB, no LLM calls. Two templates fully supported (Business Website, Portfolio Website); ~10 others visible as Coming Soon.
-
-Authoritative source-of-truth documents (uploaded by user):
+Authoritative source-of-truth documents:
 - `PROJECT_WIZARD_SOURCE_OF_TRUTH.md`
 - `Project Wizard Plansheet.xlsx`
 
 ## Architecture
 
-- **Frontend**: React 18 + Tailwind 3 + shadcn-inspired custom components + lucide-react icons + framer-motion + sonner (toasts) + react-router v6.
-- **Backend**: Minimal FastAPI (`/api/health` only) — the platform's supervisor expects a backend to run. All product data lives in the browser.
+- **Frontend**: React 18 + Tailwind 3 + custom shadcn-inspired components + lucide-react + framer-motion + sonner + react-router v6.
+- **Backend**: FastAPI (`/api/*`). Two LLM endpoints (`/api/generate`, `/api/rewrite`) power the AI layer; everything else is localStorage.
+- **LLM layer**: Emergent Universal Key (`EMERGENT_LLM_KEY`) via `emergentintegrations`.
+  - **Claude Sonnet 4.5** for major outputs (Emergent, Lovable, Markdown, QA). All 4 fan-out in parallel.
+  - **Gemini 3 Flash** for inline field rewrites (fast, ~2-6s).
 - **Persistence**: `localStorage` key `projectWizard.v1.projects` (array of projects). Autosaved on every mutation.
-- **Data-driven templates**: `/app/frontend/src/templates/index.js` — adding a new template = adding a new object. The wizard renders whatever the template defines.
-- **DNA & health**: `/app/frontend/src/lib/dna.js` — pure functions that turn a project into a structured DNA object + health/missing analysis.
-- **Deterministic generators**: `/app/frontend/src/lib/generators.js` — 4 functions produce Emergent prompt, Lovable prompt, Markdown spec, QA checklist. Architected so an AI backend can later replace/augment them.
+- **Data-driven templates**: `/app/frontend/src/templates/index.js` — adding a new template = adding a new object.
+- **DNA & health**: `/app/frontend/src/lib/dna.js` — pure functions.
+- **Deterministic generators**: `/app/frontend/src/lib/generators.js` — automatic fallback when the LLM call fails.
 
 ## Design system
 
-- **Palette**: Warm white (`#fdfcfa`) base, graphite (`#1a1c23`) foreground, royal purple (`#5f22cf`) accent (never dominant). Light mode default; CSS variables ready for dark.
-- **Type**: Instrument Sans (UI), Instrument Serif italic (accent for wow-moment headlines), JetBrains Mono (code blocks).
-- **Motion**: Fade-up staggered lists, subtle hover translations, focus rings via `--ring`.
-- **No AI-slop**: No purple gradients on white, no glassmorphism, no giant glowing buttons — Linear/Notion/Stripe restraint.
+- **Palette**: Warm white base, graphite fg, royal purple accent (never dominant).
+- **Type**: Instrument Sans, Instrument Serif italic accent, JetBrains Mono for code.
+- **Motion**: Fade-up staggered lists, subtle hover translations, animated project-health donut.
 
 ## What has been implemented
 
-- ✅ Dashboard with empty state + project cards (health %, template icon, status chip, time-ago, delete)
-- ✅ New Project flow — template picker with 2 available + 10 Coming Soon (locked)
-- ✅ Three-panel Wizard (`/project/:id`)
-  - Left: sections with per-section progress + step indicators + Outputs/Launch links
-  - Center: card-grouped questions with 8 input types (text, textarea, select, multiselect, toggle, color, chips-add, files)
-  - Right: **live Project DNA** with per-block updates, Project Health donut, Missing input list, Builder recommendation with override
-- ✅ Project Context section (file upload — .md/.txt/.json read inline; PDFs/DOCX stored as metadata)
-- ✅ Builder recommendation logic (auto switches to Emergent for Booking/Live-chat features)
-- ✅ Autosave every change to localStorage with a visible "Saved" indicator
-- ✅ Outputs page — 4 tabs (Emergent Prompt / Lovable Prompt / Markdown Spec / QA Checklist), Copy (with execCommand fallback), Download (.md), Regenerate
-- ✅ Launch checklist page — per-task toggles, progress bar, "Mark as launched" CTA
-- ✅ Semantic DNA blocks (Portfolio shows "Profile", Business shows "Business")
-- ✅ Full localStorage persistence across refreshes
+### Iteration 1 (MVP)
+- Dashboard with empty state + project cards (health %, template icon, status chip)
+- New Project template picker with Coming Soon lockouts
+- Three-panel Wizard (left sections+progress / center card questions / right live DNA + health donut + builder recommendation)
+- 8 question types (text, textarea, select, multiselect, toggle, color, chips-add, files)
+- Project Context section (drop/upload files, text files inlined for later prompt use)
+- Autosave to localStorage with visible "Saved" indicator
+- Deterministic generators for all 4 outputs
+- Launch checklist page with per-task toggles and "Mark as launched"
+
+### Iteration 2 (Current)
+- **LLM-powered generators** — Claude Sonnet 4.5 generates all 4 outputs from Project DNA (parallel fan-out). Uploaded Project Context files are included in the LLM prompt (capped at 4KB per file, top 5 files). Deterministic fallback runs automatically on any error.
+- **3 new full templates**: SaaS Landing Page (lovable), Restaurant Website (lovable), Booking App (emergent).
+- **Inline AI rewrite** on every text/textarea field via Gemini 3 Flash. Three guidance modes: Improve, Shorten, Punchier. Suggestions render in a purple card BELOW the field — user must click "Use this" to apply (never auto-overwrites).
+- **AI status tracking**: `generatedBy` ("ai" | "deterministic"), `generatedModel`, `generatedAt` are persisted per project. Shown as a badge + model chip.
+- **Graceful degradation**: Yellow error banner on any AI failure (budget exhausted, timeout, rate limit) with a clear message + automatic template fallback.
 
 ## User personas
 
@@ -55,40 +58,30 @@ Authoritative source-of-truth documents (uploaded by user):
 - Job seekers building portfolios
 - Non-technical users trying to use AI builders
 
-## Core requirements (static)
+## Testing
 
-- Data-driven templates (no wizard rewrite when adding types)
-- Project DNA is the single source of truth
-- All outputs are exports from DNA
-- No auth, no database, no external APIs
-- Autosave to localStorage
+- Iteration 1: 100% pass (frontend, single browser flow).
+- Iteration 2: 100% pass (9/9 backend pytest, all 18 frontend acceptance items). Report: `/app/test_reports/iteration_2.json`.
 
 ## Prioritized backlog / next tasks
 
-### P0 (post-MVP)
-- **LLM-powered generators**: Replace deterministic generators with LLM (Emergent LLM key) that consumes uploaded context files. Architecture already supports it.
-- **Additional templates**: SaaS Landing Page, Restaurant Website, Mobile App, Booking App.
+### P0
+- **Streaming AI generation** — stream each output as it's written (SSE), so users see progress in real time instead of a 45–60s spinner.
+- **Partial-result contract** — if 3-of-4 kinds succeed, return the 3 AI outputs + note that 1 fell back to template.
 
 ### P1
-- **Authentication + cloud sync**: JWT or Emergent Google Auth; move projects to a real backend.
-- **AI rewrite suggestions** on individual fields (e.g. "improve my hero headline").
-- **Domain/deployment helpers**: Vercel deploy button, GitHub push flow.
+- **Auth + cloud sync** (JWT or Emergent Google Auth) so projects survive across devices.
+- **AI rewrite on richer field types** — multiselect suggestions ("here are 3 more features you might want"), keyword expansion.
+- **Deploy helpers** on Launch checklist — Vercel deploy button, GitHub push.
 
 ### P2
-- **Team collaboration**: shared projects, comments.
-- **Version history & diff**: compare two generations.
-- **Admin template editor**: build templates through the UI.
-- **Payments**: Stripe checkout, credit system, premium templates.
-- **Analytics on generated projects**: track builds and downloads.
-
-## Testing
-
-- Frontend end-to-end tested via testing_agent_v3 iteration 1 → 100% pass rate.
-- All flows verified: empty state → new project → wizard → DNA updates → outputs → launch → back to dashboard → persistence.
-- Report: `/app/test_reports/iteration_1.json`.
+- **Team collaboration**, comments, mentions.
+- **Version history & diff** between generations.
+- **Admin template editor** — build templates via UI (not code).
+- **Stripe billing** — free tier with 3 projects + 5 AI generations, paid tier for unlimited.
 
 ## Known limitations
 
-- Preview/summary of uploaded PDF/DOCX files is not extracted (only metadata stored). Text files (.md/.txt/.json/.csv) are read inline.
-- Deterministic generators — quality depends on how much the user answers. LLM enhancement is the natural next step.
-- No dark mode toggle in UI (CSS is ready — one toggle away).
+- K8s ingress may have a ~60s read timeout in some environments — long Claude generations can occasionally surface as a 502 to the client even when the backend succeeds. Frontend catches this with a friendly yellow banner + template fallback, so users are never stuck.
+- Uploaded PDFs/DOCX are stored as metadata only (content not extracted). Text formats (.md/.txt/.json/.csv) are read inline.
+- Emergent Universal Key has a per-key budget cap — when exhausted, the backend returns a 402 with a friendly detail and the UI shows the yellow banner + template output.
