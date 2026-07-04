@@ -48,7 +48,19 @@ export default function Outputs() {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(currentContent);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(currentContent);
+      } else {
+        // Fallback for environments without clipboard API
+        const ta = document.createElement("textarea");
+        ta.value = currentContent;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1400);
       toast.success("Copied to clipboard");
@@ -58,12 +70,11 @@ export default function Outputs() {
   };
 
   const download = () => {
-    const ext = active === "markdownSpec" ? "md" : active === "qaChecklist" ? "md" : "md";
     const blob = new Blob([currentContent], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${project.name.replace(/\s+/g, "-").toLowerCase()}-${active}.${ext}`;
+    a.download = `${project.name.replace(/\s+/g, "-").toLowerCase()}-${active}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };

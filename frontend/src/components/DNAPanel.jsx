@@ -6,6 +6,7 @@ import { AlertCircle, Sparkles, Zap } from "lucide-react";
  * Updates continuously as the user edits questions.
  */
 export default function DNAPanel({ dna, health, project, template, onOverrideBuilder }) {
+  const isPortfolio = template?.id === "portfolio";
   return (
     <div className="p-5 space-y-6 h-full overflow-y-auto" data-testid="dna-panel">
       {/* Header with live dot */}
@@ -44,13 +45,23 @@ export default function DNAPanel({ dna, health, project, template, onOverrideBui
 
       {/* DNA summary blocks */}
       <div className="space-y-3.5">
-        <DNABlock title="Business" data={{
-          Name: dna?.business.name || dna?.profile.fullName,
-          Tagline: dna?.business.tagline,
-          Industry: dna?.business.industry,
-          Location: dna?.business.location,
-          Goal: dna?.goals.primaryGoal,
-        }} />
+        {isPortfolio ? (
+          <DNABlock title="Profile" data={{
+            Name: dna?.profile.fullName,
+            Title: dna?.profile.title,
+            Location: dna?.profile.location,
+            Email: dna?.profile.email,
+            Bio: dna?.profile.bio,
+          }} />
+        ) : (
+          <DNABlock title="Business" data={{
+            Name: dna?.business.name,
+            Tagline: dna?.business.tagline,
+            Industry: dna?.business.industry,
+            Location: dna?.business.location,
+            Goal: dna?.goals.primaryGoal,
+          }} />
+        )}
         <DNABlock title="Brand" data={{
           Primary: dna?.brand.primaryColor,
           Secondary: dna?.brand.secondaryColor,
