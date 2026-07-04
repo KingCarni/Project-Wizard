@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 2 (LLM features + 3 new templates + inline AI rewrite) tested end-to-end. Backend: 9/9 pytest tests pass — /api/health (llm_ready:true), /api/rewrite (Gemini 3 Flash, ~2-6s, all 3 guidance modes + 400/422 validation), /api/generate (Claude Sonnet 4.5, all 4 kinds in parallel, ~54s, valid Markdown outputs referencing project name/tagline, correct generatedBy/model fields, 400 on unknown kinds). Frontend Playwright: template picker shows 5 available + 7 coming-soon exactly. SaaS Landing (9 sections incl. Product/Value/Features/Pricing/Social Proof), Restaurant (Restaurant Info/Menu/Location & Hours/Reservations & Features with cuisine + style segmented pills), and Booking (Services/Scheduling Rules/Booking Flow/Payments/Notifications with DNA recommended builder = Emergent) all render correctly. AI rewrite controls appear ONLY on text/textarea (verified select-type 'stage' does NOT get them). AI rewrite (improve) and Shorten both produced a suggestion card within ~5s; 'Use this' replaces the field value AND fires 'Suggestion applied' toast AND live-updates the DNA panel; 'Discard' removes card and preserves the original value. Outputs page: Generate with AI shows purple loading card with exact copy 'Claude is drafting all four outputs in parallel…', ~60s later the badge flips TEMPLATE -> AI-GENERATED, content grows 5-6x (1.9K -> 9.6K–11K chars), all 4 tabs contain the project's actual name (Riverstone), tagline / location, and the 'claude-sonnet-4.5' model chip is visible in the code header. Simulated 402 error via network route returns a yellow error banner (outputs-ai-error) with detail message, loading card disappears, template fallback populates content, Dismiss removes banner. 'Rebuild from template' flips badge back to TEMPLATE and persists across reload. No regressions on dashboard, wizard nav, DNA live updates, autosave.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      { "endpoint": "/api/generate", "issue": "Ingress/proxy 60s timeout can occasionally cut off the parallel Claude fan-out (observed 502 at ~60.15s on one run before a retry succeeded at ~53.7s). The backend request itself completes and returns 200 OK server-side (visible in supervisor backend.out.log), but the client sees 502. Backend timeout config is 180s but is bounded by the K8s ingress. Consider (a) streaming the response early, (b) shrinking the prompt / lowering max_tokens per kind, (c) documenting that in prod deployment the LB read-timeout must be >90s. This is why frontend now retries via the friendly error banner + template fallback — the graceful path works, but users may occasionally see the banner even when the key isn't exhausted." }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: consider reducing Claude max_tokens per kind from 6000 or serialising 2+2 rather than 4-way parallel to stay under the ingress 60s window more reliably.",
+    "Optional: silence the React Router v6 future-flag warnings (v7_startTransition, v7_relativeSplatPath) — carried over from iteration 1 and still logged."
+  ],
+  "critical_code_review_comments": [
+    "server.py _run_llm: `except Exception as e` catches everything including HTTPException from downstream — but HTTPException isn't raised inside try, so this is fine in practice. Still, consider re-raising HTTPException explicitly to be defensive if the LLM helper grows.",
+    "server.py /api/generate: on any single-kind failure, `raise r` re-raises the first exception with no partial-outputs contract. Frontend already handles this by falling back to template — but returning `outputs: {successKind: text, ...}` + a `partial:true` flag could improve UX (show 3-of-4 AI outputs + 1 template fallback).",
+    "AIRewriteButton — the raw fetch to /api/rewrite uses REACT_APP_BACKEND_URL (verified). No abort controller: if the user clicks Discard while a request is in flight, the still-pending response will land into the ignored state — currently it just sets a suggestion that is immediately overwritten by next click. Consider AbortController for cleanliness.",
+    "Outputs.jsx: when AI succeeds after a previous Rebuild, the model chip only shows for AI-generated (verified). The prior code-review note about the trivial ternary for download extension still applies (unchanged from iteration 1).",
+    "Server allow_origins='*' with allow_credentials=True is a browser-blocked combination for real credentialed requests. Not an issue today (no cookies), but flag before prod hardening."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (new — 9 pytest tests, junit XML output)"
+  ],
+  "success_rate": { "backend": "100% (9/9 pytest)", "frontend": "100% (all 18 acceptance items verified)" },
+  "test_credentials": "N/A — no auth. Emergent Universal Key already in /app/backend/.env, LLM ready.",
+  "seed_data_creation": "Playwright tests seed & clear localStorage between flows (key 'projectWizard.v1.projects'). All test data prefixed 'TEST '. No backend DB writes.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend LLM endpoints: /api/health, /api/rewrite (Gemini 3 Flash ~2-6s), /api/generate (Claude Sonnet 4.5 ~45-60s parallel for 4 kinds). K8s ingress has a ~60s read timeout — if generate exceeds it you'll see 502 from curl even though backend logs show 200 OK. Frontend gracefully falls back to template on any /api/generate error and shows a yellow banner (testid outputs-ai-error). Templates: 5 available (business-website, portfolio, saas-landing, restaurant, booking) + 7 coming-soon. Booking's recommendedBuilder defaults to 'emergent'; others 'lovable'. AI rewrite controls (testids: ai-rewrite-{qid}, -shorten, -punchier, -suggestion, -suggestion-text, -discard, -accept) render ONLY for text + textarea. Outputs testids: outputs-generate-ai-btn, outputs-regenerate-btn, outputs-generatedby-badge, outputs-ai-loading, outputs-ai-error, outputs-ai-error-dismiss, outputs-tab-<kind>, outputs-content.",
+  "rca of the issue": "No blocking issue. The only nuance is: the K8s ingress 60s read timeout can occasionally translate a fully successful 45-60s Claude parallel call into a client-side 502. Verified graceful path — frontend catches, shows yellow banner (outputs-ai-error) with the detail, and falls back to the deterministic template output so the user is never stuck."
+}

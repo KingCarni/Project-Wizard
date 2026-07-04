@@ -339,21 +339,434 @@ const portfolio = {
   ],
 };
 
+// -------------------- SaaS Landing Page --------------------
+const saasLanding = {
+  id: "saas-landing",
+  name: "SaaS Landing Page",
+  tagline: "High-converting landing page for a software product.",
+  description:
+    "A single-page (or few-page) marketing site built to drive trial signups or demo requests.",
+  category: "Website",
+  icon: "zap",
+  recommendedBuilder: "lovable",
+  status: "available",
+  sections: [
+    projectContextSection,
+    {
+      id: "product",
+      title: "Product",
+      icon: "layers",
+      description: "The software you're launching.",
+      questions: [
+        { id: "productName", label: "Product name", type: "text", required: true },
+        { id: "tagline", label: "One-line tagline", type: "text", placeholder: "The AI-powered way to X." },
+        { id: "description", label: "What does it do?", type: "textarea", required: true, placeholder: "Explain in two or three sentences." },
+        {
+          id: "stage",
+          label: "Product stage",
+          type: "select",
+          options: ["Pre-launch / waitlist", "Beta", "Public launch", "Established growth"],
+        },
+        { id: "targetUser", label: "Target user", type: "textarea", placeholder: "Job title, team, or persona." },
+        { id: "problem", label: "Problem it solves", type: "textarea" },
+        { id: "primaryCTA", label: "Primary CTA", type: "text", placeholder: "e.g. Start free trial" },
+        { id: "secondaryCTA", label: "Secondary CTA (optional)", type: "text", placeholder: "e.g. Book a demo" },
+      ],
+    },
+    {
+      id: "value",
+      title: "Value & Positioning",
+      icon: "sparkles",
+      description: "How you frame the win.",
+      questions: [
+        { id: "heroHeadline", label: "Hero headline", type: "text", placeholder: "The outcome, not the feature." },
+        { id: "heroSubheadline", label: "Hero subheadline", type: "textarea" },
+        { id: "differentiators", label: "Key differentiators", type: "chips-add", placeholder: "One per chip" },
+        { id: "competitors", label: "Alternatives users compare you to", type: "chips-add" },
+      ],
+    },
+    {
+      id: "features",
+      title: "Features",
+      icon: "layers",
+      description: "What the product actually does.",
+      questions: [
+        { id: "keyFeatures", label: "Key features (one per line, with a short benefit)", type: "textarea", placeholder: "Instant AI drafts — turn a brief into first draft in 30s" },
+        { id: "integrations", label: "Integrations", type: "chips-add" },
+      ],
+    },
+    {
+      id: "pricing",
+      title: "Pricing",
+      icon: "type",
+      description: "How the product monetizes.",
+      questions: [
+        { id: "hasPricing", label: "Show pricing publicly?", type: "toggle", default: true },
+        {
+          id: "pricingModel",
+          label: "Pricing model",
+          type: "select",
+          options: ["Free", "Freemium", "Flat monthly", "Per-seat", "Usage-based", "Enterprise / contact sales"],
+        },
+        { id: "tiers", label: "Pricing tiers (one per line)", type: "textarea", placeholder: "Free — 5 projects, community support\nPro — $29/mo, unlimited projects\nTeam — $79/mo/seat, SSO" },
+        { id: "trial", label: "Free trial available?", type: "toggle" },
+      ],
+    },
+    {
+      id: "social-proof",
+      title: "Social Proof",
+      icon: "user",
+      description: "Evidence that this actually works.",
+      questions: [
+        { id: "customerLogos", label: "Customer / partner logos", type: "chips-add" },
+        { id: "testimonials", label: "Testimonials (one per line)", type: "textarea" },
+        { id: "metrics", label: "Impact metrics (one per line)", type: "textarea", placeholder: "10× faster onboarding\n1,200+ teams shipping weekly" },
+      ],
+    },
+    {
+      id: "brand",
+      title: "Brand",
+      icon: "palette",
+      description: "The visual identity of the landing page.",
+      questions: [
+        { id: "primaryColor", label: "Primary color", type: "color", default: "#5f22cf" },
+        { id: "secondaryColor", label: "Secondary color", type: "color", default: "#1a1c23" },
+        {
+          id: "designStyle",
+          label: "Design style",
+          type: "select",
+          options: ["Modern minimal", "Bold & colorful", "Editorial", "Technical / developer", "Playful"],
+        },
+        {
+          id: "brandTone",
+          label: "Brand tone",
+          type: "multiselect",
+          options: ["Confident", "Playful", "Technical", "Warm", "Bold", "Minimal"],
+        },
+      ],
+    },
+    {
+      id: "seo",
+      title: "SEO",
+      icon: "search",
+      description: "How prospects find you.",
+      questions: [
+        { id: "keywords", label: "Target keywords", type: "chips-add" },
+        { id: "metaTitle", label: "Meta title", type: "text" },
+        { id: "metaDescription", label: "Meta description", type: "textarea" },
+        { id: "ogSummary", label: "Open Graph summary", type: "textarea" },
+      ],
+    },
+    {
+      id: "launch",
+      title: "Launch",
+      icon: "rocket",
+      description: "Getting live.",
+      questions: [
+        { id: "domainName", label: "Domain name", type: "text", placeholder: "product.com" },
+        { id: "hosting", label: "Preferred hosting", type: "select", options: ["Vercel", "Netlify", "Cloudflare Pages", "Not sure yet"] },
+        { id: "needsAnalytics", label: "Include analytics?", type: "toggle", default: true },
+        { id: "waitlistDestination", label: "Where signups go (email / API endpoint)", type: "text" },
+      ],
+    },
+  ],
+  builderRules: { default: "lovable" },
+  setupChecklist: [
+    { id: "review", title: "Review generated landing page" },
+    { id: "signup", title: "Wire up signup / waitlist form", description: "Test end-to-end." },
+    { id: "analytics", title: "Install analytics (Plausible/Fathom/GA4)" },
+    { id: "og", title: "Set OG image + social preview" },
+    { id: "domain", title: "Connect custom domain" },
+    { id: "seo", title: "Submit sitemap to Google Search Console" },
+    { id: "share", title: "Post launch to social / Product Hunt" },
+  ],
+};
+
+// -------------------- Restaurant Website --------------------
+const restaurant = {
+  id: "restaurant",
+  name: "Restaurant Website",
+  tagline: "Menu, hours, and reservations for a restaurant.",
+  description:
+    "A visually appetizing site that gets diners to book a table or place an order.",
+  category: "Website",
+  icon: "utensils",
+  recommendedBuilder: "lovable",
+  status: "available",
+  sections: [
+    projectContextSection,
+    {
+      id: "restaurant-info",
+      title: "Restaurant Info",
+      icon: "building",
+      description: "The basics.",
+      questions: [
+        { id: "restaurantName", label: "Restaurant name", type: "text", required: true },
+        { id: "tagline", label: "Tagline", type: "text" },
+        {
+          id: "cuisine",
+          label: "Cuisine",
+          type: "select",
+          options: ["Italian", "French", "Japanese", "Chinese", "Indian", "Mexican", "American", "Mediterranean", "Middle Eastern", "Thai", "Vietnamese", "Fusion", "Other"],
+        },
+        {
+          id: "style",
+          label: "Style of dining",
+          type: "select",
+          options: ["Fine dining", "Casual", "Bistro", "Café", "Fast casual", "Bar & grill", "Pop-up"],
+        },
+        { id: "description", label: "Short description", type: "textarea", required: true },
+        { id: "story", label: "Chef / owner story (optional)", type: "textarea" },
+      ],
+    },
+    {
+      id: "menu",
+      title: "Menu",
+      icon: "type",
+      description: "What you serve.",
+      questions: [
+        { id: "featuredDishes", label: "Featured dishes (one per line)", type: "textarea", placeholder: "Bucatini all'Amatriciana — pecorino, guanciale, tomato" },
+        { id: "menuCategories", label: "Menu categories", type: "multiselect", options: ["Starters", "Salads", "Mains", "Sides", "Desserts", "Wine list", "Cocktails", "Coffee & Tea", "Kids"] },
+        { id: "menuPDF", label: "Link to menu PDF (optional)", type: "text" },
+        { id: "dietary", label: "Dietary options", type: "multiselect", options: ["Vegetarian", "Vegan", "Gluten-free", "Halal", "Kosher", "Nut-free"] },
+        { id: "priceRange", label: "Price range", type: "select", options: ["$", "$$", "$$$", "$$$$"] },
+      ],
+    },
+    {
+      id: "location",
+      title: "Location & Hours",
+      icon: "layout",
+      description: "Where to find you.",
+      questions: [
+        { id: "address", label: "Full address", type: "textarea", required: true },
+        { id: "phone", label: "Phone", type: "text" },
+        { id: "email", label: "Email", type: "text" },
+        { id: "hours", label: "Hours (one line per day)", type: "textarea", placeholder: "Mon–Thu 17:00–22:00\nFri–Sat 17:00–23:00\nSun Closed" },
+        { id: "parking", label: "Parking / transit notes", type: "text" },
+      ],
+    },
+    {
+      id: "brand",
+      title: "Brand",
+      icon: "palette",
+      description: "The mood of the site.",
+      questions: [
+        { id: "primaryColor", label: "Primary color", type: "color", default: "#7c2d12" },
+        { id: "secondaryColor", label: "Secondary color", type: "color", default: "#fdfcfa" },
+        {
+          id: "designStyle",
+          label: "Design style",
+          type: "select",
+          options: ["Editorial / magazine", "Warm & rustic", "Modern minimal", "Bold & colorful", "Elegant / fine dining", "Playful"],
+        },
+        { id: "photography", label: "Photography direction", type: "textarea", placeholder: "Moody low-light close-ups, natural daylight interiors…" },
+      ],
+    },
+    {
+      id: "features",
+      title: "Reservations & Features",
+      icon: "layers",
+      description: "How guests interact with the site.",
+      questions: [
+        {
+          id: "features",
+          label: "Features",
+          type: "multiselect",
+          options: ["Online reservations", "Online ordering / takeout", "Delivery link", "Gift cards", "Private events", "Newsletter", "Instagram feed", "Google Maps", "Menu download"],
+          default: ["Online reservations", "Google Maps"],
+        },
+        { id: "reservationLink", label: "Reservation platform link (OpenTable, Resy, Tock…)", type: "text" },
+        { id: "orderLink", label: "Online ordering link (if any)", type: "text" },
+      ],
+    },
+    {
+      id: "seo",
+      title: "SEO",
+      icon: "search",
+      description: "How diners find you.",
+      questions: [
+        { id: "keywords", label: "Cuisine + neighbourhood keywords", type: "chips-add", placeholder: "e.g. Italian restaurant Portland Pearl District" },
+        { id: "metaTitle", label: "Meta title", type: "text" },
+        { id: "metaDescription", label: "Meta description", type: "textarea" },
+      ],
+    },
+    {
+      id: "launch",
+      title: "Launch",
+      icon: "rocket",
+      description: "Going live.",
+      questions: [
+        { id: "domainName", label: "Domain name", type: "text" },
+        { id: "socialLinks", label: "Social profiles (URLs)", type: "textarea" },
+        { id: "googleBusiness", label: "Google Business Profile URL", type: "text" },
+      ],
+    },
+  ],
+  builderRules: { default: "lovable" },
+  setupChecklist: [
+    { id: "review", title: "Review site copy and photos" },
+    { id: "reservations", title: "Test reservation flow end-to-end" },
+    { id: "menu", title: "Confirm menu is up-to-date" },
+    { id: "hours", title: "Double-check hours and holiday closures" },
+    { id: "google", title: "Update Google Business Profile" },
+    { id: "domain", title: "Connect custom domain" },
+    { id: "mobile", title: "Test on mobile at the bar / on the floor" },
+    { id: "social", title: "Announce on Instagram" },
+  ],
+};
+
+// -------------------- Booking App --------------------
+const bookingApp = {
+  id: "booking",
+  name: "Booking App",
+  tagline: "Calendar-first scheduling for a service business.",
+  description:
+    "A lightweight app where clients pick a service, choose a time, and confirm — with clear rules around availability.",
+  category: "App",
+  icon: "calendar",
+  recommendedBuilder: "emergent",
+  status: "available",
+  sections: [
+    projectContextSection,
+    {
+      id: "business",
+      title: "Business",
+      icon: "building",
+      description: "The service business behind the booking.",
+      questions: [
+        { id: "businessName", label: "Business name", type: "text", required: true },
+        { id: "tagline", label: "Tagline", type: "text" },
+        { id: "description", label: "What you offer", type: "textarea", required: true },
+        {
+          id: "industry",
+          label: "Industry",
+          type: "select",
+          options: ["Salon / Spa", "Fitness / Personal training", "Health / Therapy", "Coaching / Consulting", "Photography", "Tutoring", "Home services", "Other"],
+        },
+        { id: "location", label: "Location or service area", type: "text" },
+      ],
+    },
+    {
+      id: "services",
+      title: "Services",
+      icon: "layers",
+      description: "What clients can book.",
+      questions: [
+        { id: "services", label: "Services (one per line: name — duration — price)", type: "textarea", required: true, placeholder: "60-min Deep Tissue — 60m — $95\nInitial Consultation — 30m — Free" },
+        { id: "categories", label: "Service categories", type: "chips-add", placeholder: "e.g. Massage, Facial, Bodywork" },
+        { id: "hasProviders", label: "Multiple providers / staff?", type: "toggle" },
+        { id: "providers", label: "Providers (one per line, if multiple)", type: "textarea" },
+      ],
+    },
+    {
+      id: "scheduling",
+      title: "Scheduling Rules",
+      icon: "type",
+      description: "The rules the calendar must obey.",
+      questions: [
+        { id: "hours", label: "Working hours (per day)", type: "textarea", placeholder: "Mon–Fri 09:00–18:00\nSat 10:00–14:00\nSun Closed" },
+        { id: "slotInterval", label: "Slot interval", type: "select", options: ["15 min", "30 min", "45 min", "60 min"] },
+        { id: "buffer", label: "Buffer between appointments", type: "select", options: ["None", "10 min", "15 min", "30 min"] },
+        { id: "leadTime", label: "Minimum lead time before booking", type: "select", options: ["None", "1 hour", "4 hours", "12 hours", "24 hours"] },
+        { id: "cancellation", label: "Cancellation policy", type: "textarea", placeholder: "Free cancellation up to 24h before…" },
+      ],
+    },
+    {
+      id: "flow",
+      title: "Booking Flow",
+      icon: "layout",
+      description: "The client's journey.",
+      questions: [
+        {
+          id: "flowSteps",
+          label: "Steps in the booking flow",
+          type: "multiselect",
+          options: ["Choose service", "Choose provider", "Choose date & time", "Enter contact info", "Enter details / intake form", "Confirm & pay"],
+          default: ["Choose service", "Choose date & time", "Enter contact info", "Confirm & pay"],
+        },
+        { id: "requiresAccount", label: "Require account creation?", type: "toggle" },
+        { id: "intakeFields", label: "Custom intake fields (one per line)", type: "textarea", placeholder: "Any injuries?\nHow did you hear about us?" },
+      ],
+    },
+    {
+      id: "payments",
+      title: "Payments",
+      icon: "type",
+      description: "How money moves.",
+      questions: [
+        { id: "paymentTiming", label: "When do clients pay?", type: "select", options: ["At time of booking", "Deposit at booking, rest at appointment", "Pay at appointment", "No online payment"] },
+        {
+          id: "paymentProvider",
+          label: "Payment provider",
+          type: "select",
+          options: ["Stripe", "PayPal", "Square", "Not sure yet", "None"],
+        },
+        { id: "acceptTips", label: "Accept tips?", type: "toggle" },
+      ],
+    },
+    {
+      id: "notifications",
+      title: "Notifications",
+      icon: "sparkles",
+      description: "Reminders and confirmations.",
+      questions: [
+        {
+          id: "channels",
+          label: "Notification channels",
+          type: "multiselect",
+          options: ["Email confirmation", "Email reminder", "SMS reminder", "iCal / Google Calendar invite"],
+          default: ["Email confirmation", "Email reminder"],
+        },
+        { id: "reminderTiming", label: "Reminder timing", type: "select", options: ["1 hour before", "3 hours before", "24 hours before", "48 hours before"] },
+      ],
+    },
+    {
+      id: "brand",
+      title: "Brand",
+      icon: "palette",
+      description: "How the app looks.",
+      questions: [
+        { id: "primaryColor", label: "Primary color", type: "color", default: "#5f22cf" },
+        { id: "designStyle", label: "Design style", type: "select", options: ["Clean & minimal", "Warm & welcoming", "Bold & confident", "Clinical / professional"] },
+      ],
+    },
+    {
+      id: "launch",
+      title: "Launch",
+      icon: "rocket",
+      description: "Going live.",
+      questions: [
+        { id: "domainName", label: "Domain name", type: "text" },
+        { id: "adminEmail", label: "Admin notification email", type: "text" },
+        { id: "existingCalendar", label: "Sync with an existing calendar? (Google, iCloud)", type: "text" },
+      ],
+    },
+  ],
+  builderRules: { default: "emergent" },
+  setupChecklist: [
+    { id: "review", title: "Review generated app" },
+    { id: "services", title: "Enter real service list, prices, durations" },
+    { id: "calendar", title: "Configure availability + working hours" },
+    { id: "payments", title: "Connect payment provider" },
+    { id: "email", title: "Verify confirmation + reminder emails" },
+    { id: "test", title: "Book a test appointment as a client" },
+    { id: "domain", title: "Connect custom domain" },
+    { id: "launch", title: "Share with first customers" },
+  ],
+};
+
 // -------------------- Coming Soon --------------------
 const comingSoon = [
-  { id: "saas-landing", name: "SaaS Landing Page", tagline: "High-converting hero + features + pricing.", icon: "zap", recommendedBuilder: "lovable" },
-  { id: "restaurant", name: "Restaurant Website", tagline: "Menu, hours, reservations.", icon: "utensils", recommendedBuilder: "lovable" },
   { id: "local-service", name: "Local Service Website", tagline: "Plumbers, cleaners, contractors.", icon: "wrench", recommendedBuilder: "lovable" },
   { id: "game-studio", name: "Game Studio Website", tagline: "Showcase your games and team.", icon: "gamepad2", recommendedBuilder: "lovable" },
   { id: "ecommerce", name: "Ecommerce Store", tagline: "Products, cart, checkout.", icon: "shopping-bag", recommendedBuilder: "emergent" },
   { id: "education", name: "Educational Platform", tagline: "Courses, lessons, enrollment.", icon: "graduation-cap", recommendedBuilder: "emergent" },
   { id: "mobile-app", name: "Mobile App", tagline: "iOS / Android product.", icon: "smartphone", recommendedBuilder: "emergent" },
-  { id: "booking", name: "Booking App", tagline: "Calendar-first scheduling.", icon: "calendar", recommendedBuilder: "emergent" },
   { id: "nonprofit", name: "Nonprofit Website", tagline: "Mission, programs, donations.", icon: "heart", recommendedBuilder: "lovable" },
   { id: "marketing-campaign", name: "Marketing Campaign", tagline: "Landing page + email sequence.", icon: "megaphone", recommendedBuilder: "lovable" },
 ].map((t) => ({ ...t, status: "coming-soon", sections: [], setupChecklist: [] }));
 
-export const templates = [businessWebsite, portfolio, ...comingSoon];
+export const templates = [businessWebsite, portfolio, saasLanding, restaurant, bookingApp, ...comingSoon];
 
 export function getTemplate(id) {
   return templates.find((t) => t.id === id);

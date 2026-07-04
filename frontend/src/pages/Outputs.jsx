@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Copy, Check, Sparkles, RefreshCw, Rocket, Download } from "lucide-react";
+import { ArrowLeft, Copy, Check, Sparkles, RefreshCw, Rocket, Download, Loader2, FileText, Zap } from "lucide-react";
 import TopBar from "../components/TopBar";
 import { getProject, updateProject } from "../lib/storage";
+import { getTemplate } from "../templates";
 import { buildProjectDNA } from "../lib/dna";
 import { generateAll } from "../lib/generators";
+import { generateOutputsWithAI } from "../lib/aiService";
 import { toast } from "sonner";
 
 const TABS = [
@@ -20,30 +22,62 @@ export default function Outputs() {
   const [project, setProject] = useState(null);
   const [active, setActive] = useState("emergentPrompt");
   const [copied, setCopied] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   useEffect(() => {
     const p = getProject(id);
     if (!p) { navigate("/"); return; }
-    // Auto-align default active tab with selected builder
     setActive(p.selectedBuilder === "emergent" ? "emergentPrompt" : "lovablePrompt");
     setProject(p);
   }, [id, navigate]);
+
+  const template = useMemo(() => project && getTemplate(project.templateId), [project]);
 
   const outputs = useMemo(() => {
     if (!project) return null;
     return project.generatedOutputs || generateAll(buildProjectDNA(project));
   }, [project]);
 
-  if (!project || !outputs) return null;
+  if (!project || !outputs || !template) return null;
 
   const currentContent = outputs[active] || "";
+  const generatedBy = project.generatedBy || "deterministic";
 
-  const regenerate = () => {
+  const regenerateDeterministic = () => {
     const dna = buildProjectDNA(project);
     const fresh = generateAll(dna);
-    const updated = updateProject(project.id, { generatedOutputs: fresh, status: "Generated" });
+    const updated = updateProject(project.id, {
+      generatedOutputs: fresh,
+      generatedBy: "deterministic",
+      generatedAt: new Date().toISOString(),
+      status: "Generated",
+    });
     setProject(updated);
-    toast.success("Outputs regenerated from latest DNA");
+    toast.success("Rebuilt from template");
+  };
+
+  const generateWithAI = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const { outputs: aiOutputs, model } = await generateOutputsWithAI(project, template);
+      const updated = updateProject(project.id, {
+        generatedOutputs: aiOutputs,
+        generatedBy: "ai",
+        generatedModel: model,
+        generatedAt: new Date().toISOString(),
+        status: "Generated",
+      });
+      setProject(updated);
+      toast.success("AI-generated outputs ready");
+    } catch (e) {
+      setAiError(e.message || "AI generation failed");
+      toast.error("AI generation unavailable — showing template output.");
+      regenerateDeterministic();
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const copy = async () => {
@@ -51,7 +85,6 @@ export default function Outputs() {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(currentContent);
       } else {
-        // Fallback for environments without clipboard API
         const ta = document.createElement("textarea");
         ta.value = currentContent;
         ta.style.position = "fixed";
@@ -105,22 +138,104 @@ export default function Outputs() {
       <main className="max-w-[1100px] mx-auto px-6 py-10">
         <div className="mb-8 flex items-start justify-between gap-6">
           <div className="animate-fade-in">
-            <div className="pw-eyebrow mb-2">Outputs</div>
+            <div className="pw-eyebrow mb-2 flex items-center gap-2">
+              Outputs
+              <span
+                className="pw-chip"
+                style={
+                  generatedBy === "ai"
+                    ? { background: "var(--accent-soft)", color: "var(--accent)", borderColor: "transparent" }
+                    : undefined
+                }
+                data-testid="outputs-generatedby-badge"
+              >
+                {generatedBy === "ai" ? (
+                  <><Sparkles className="w-2.5 h-2.5" /> AI-generated</>
+                ) : (
+                  <><FileText className="w-2.5 h-2.5" /> Template</>
+                )}
+              </span>
+            </div>
             <h1 className="text-[30px] font-semibold tracking-tight text-fg">
               Ready to <span className="font-display" style={{ color: "var(--accent)" }}>ship into a builder.</span>
             </h1>
             <p className="text-fg-muted mt-2 text-[14.5px] max-w-xl">
-              Everything below is generated from your Project DNA. Copy, tweak, and paste into your builder of choice.
+              {generatedBy === "ai"
+                ? "Generated by Claude Sonnet 4.5 from your Project DNA. Copy, tweak, and paste into your builder of choice."
+                : "Everything below is generated deterministically from your Project DNA. Try 'Generate with AI' for a richer, tailored version."}
             </p>
           </div>
-          <button
-            className="pw-btn pw-btn-subtle shrink-0"
-            onClick={regenerate}
-            data-testid="outputs-regenerate-btn"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Regenerate
-          </button>
+          <div className="flex flex-col gap-2 shrink-0">
+            <button
+              className="pw-btn pw-btn-accent"
+              onClick={generateWithAI}
+              disabled={aiLoading}
+              data-testid="outputs-generate-ai-btn"
+            >
+              {aiLoading ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating with Claude…</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5" /> Generate with AI</>
+              )}
+            </button>
+            <button
+              className="pw-btn pw-btn-ghost text-sm"
+              onClick={regenerateDeterministic}
+              disabled={aiLoading}
+              data-testid="outputs-regenerate-btn"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Rebuild from template
+            </button>
+          </div>
         </div>
+
+        {/* Loading placeholder card */}
+        {aiLoading && (
+          <div
+            className="pw-card p-5 mb-5 flex items-center gap-3 animate-fade-in"
+            style={{ borderColor: "var(--accent)", background: "var(--accent-soft)" }}
+            data-testid="outputs-ai-loading"
+          >
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--accent)" }} />
+            <div>
+              <div className="text-[13.5px] font-semibold" style={{ color: "var(--accent)" }}>
+                Claude is drafting all four outputs in parallel…
+              </div>
+              <div className="text-[12px] text-fg-muted">Usually takes 15–40 seconds. Uploaded context is being included.</div>
+            </div>
+          </div>
+        )}
+
+        {/* Error banner — kept useful, not scary */}
+        {aiError && !aiLoading && (
+          <div
+            className="pw-card p-4 mb-5 flex items-start gap-3 animate-fade-in"
+            style={{ borderColor: "#fbbf24", background: "#fffbeb" }}
+            data-testid="outputs-ai-error"
+          >
+            <div
+              className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+              style={{ background: "#fef3c7", color: "#b45309" }}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold" style={{ color: "#92400e" }}>AI generation unavailable</div>
+              <div className="text-[12.5px] mt-0.5 leading-snug" style={{ color: "#78350f" }}>{aiError}</div>
+              <div className="text-[12px] mt-1.5" style={{ color: "#92400e" }}>
+                Showing the template-based output instead &mdash; it&rsquo;s still complete and copy-ready.
+              </div>
+            </div>
+            <button
+              className="pw-btn pw-btn-ghost text-xs py-1 px-2"
+              onClick={() => setAiError(null)}
+              data-testid="outputs-ai-error-dismiss"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
 
         {/* Tabs */}
         <div className="flex gap-1.5 flex-wrap mb-4" data-testid="outputs-tabs">
@@ -150,6 +265,11 @@ export default function Outputs() {
               <Sparkles className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
               <span className="text-[12.5px] font-medium text-fg">{TABS.find((t) => t.id === active)?.label}</span>
               <span className="pw-chip" style={{ fontSize: 10.5 }}>{currentContent.length.toLocaleString()} chars</span>
+              {project.generatedModel && (
+                <span className="pw-chip" style={{ fontSize: 10.5 }} title={project.generatedModel}>
+                  <Zap className="w-2.5 h-2.5" /> {shortModel(project.generatedModel)}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5">
               <button className="pw-btn pw-btn-ghost text-xs py-1.5" onClick={download} data-testid="outputs-download-btn">
@@ -167,4 +287,14 @@ export default function Outputs() {
       </main>
     </div>
   );
+}
+
+function shortModel(m) {
+  if (!m) return "";
+  // "anthropic/claude-sonnet-4-5-20250929" → "claude-sonnet-4.5"
+  const map = {
+    "anthropic/claude-sonnet-4-5-20250929": "claude-sonnet-4.5",
+    "gemini/gemini-3-flash-preview": "gemini-3-flash",
+  };
+  return map[m] || m.split("/").pop();
 }

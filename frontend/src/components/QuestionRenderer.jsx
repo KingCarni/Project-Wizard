@@ -1,31 +1,49 @@
 import { Upload, File as FileIcon, X } from "lucide-react";
 import React, { useRef, useState } from "react";
+import AIRewriteButton from "./AIRewriteButton";
 
 /**
  * QuestionRenderer — one component per question type, kept small and predictable.
  */
-export default function QuestionRenderer({ question, value, onChange, project, onFilesAdd, onFileRemove }) {
+export default function QuestionRenderer({ question, value, onChange, project, onFilesAdd, onFileRemove, projectSummary }) {
   const q = question;
+  // Text-based questions get an AI rewrite affordance.
+  const rewritable = q.type === "text" || q.type === "textarea";
+  const rewriteEl = rewritable ? (
+    <AIRewriteButton
+      label={q.label}
+      currentValue={value || ""}
+      projectSummary={projectSummary || ""}
+      onAccept={(t) => onChange(t)}
+      testid={`ai-rewrite-${q.id}`}
+    />
+  ) : null;
   switch (q.type) {
     case "text":
       return (
-        <input
-          className="pw-input"
-          placeholder={q.placeholder || ""}
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid={`q-${q.id}`}
-        />
+        <>
+          <input
+            className="pw-input"
+            placeholder={q.placeholder || ""}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            data-testid={`q-${q.id}`}
+          />
+          {rewriteEl}
+        </>
       );
     case "textarea":
       return (
-        <textarea
-          className="pw-textarea"
-          placeholder={q.placeholder || ""}
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          data-testid={`q-${q.id}`}
-        />
+        <>
+          <textarea
+            className="pw-textarea"
+            placeholder={q.placeholder || ""}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            data-testid={`q-${q.id}`}
+          />
+          {rewriteEl}
+        </>
       );
     case "select":
       return (

@@ -56,7 +56,7 @@ export default function Dashboard() {
           <div className="animate-fade-in">
             <div className="pw-eyebrow mb-2">Dashboard</div>
             <h1 className="text-[34px] leading-tight tracking-tight font-semibold text-fg">
-              Your projects, <span className="font-display" style={{ color: "var(--accent)" }}>designed before they're built.</span>
+              Your projects, <span className="font-display" style={{ color: "var(--accent)" }}>designed before they&rsquo;re built.</span>
             </h1>
             <p className="text-fg-muted mt-3 text-[15px] max-w-xl">
               Project Wizard interviews you like a product manager, then exports builder&#8209;ready prompts and specs &mdash; so the AI knows exactly what to build.

@@ -8,6 +8,7 @@ import { getProject, setAnswer, updateProject, addContextFile, removeContextFile
 import { getTemplate } from "../templates";
 import { buildProjectDNA, computeHealth } from "../lib/dna";
 import { generateAll } from "../lib/generators";
+import { buildProjectSummary } from "../lib/aiService";
 import QuestionRenderer from "../components/QuestionRenderer";
 import DNAPanel from "../components/DNAPanel";
 import TopBar from "../components/TopBar";
@@ -282,6 +283,7 @@ export default function Wizard() {
                     project={project}
                     onFilesAdd={handleFileAdd}
                     onFileRemove={handleFileRemove}
+                    projectSummary={buildProjectSummary(project, template)}
                   />
                 </div>
               ))}
