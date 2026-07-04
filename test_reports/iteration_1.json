@@ -1,0 +1,32 @@
+{
+  "summary": "Ran full end-to-end frontend UI testing of Project Wizard (frontend-only, localStorage-only). Verified: dashboard empty state, template picker (2 available + 10 non-clickable Coming Soon), project creation for both Business Website and Portfolio, three-panel Wizard layout, section navigation, every question type (text, textarea, select, multiselect, toggle, color, chips-add, files), live DNA panel updates, Project Health % updates, builder recommendation auto-switching (Booking link -> emergent) and manual override (dna-builder-lovable/emergent), context file upload with library entry, localStorage persistence across page reload, Outputs page with 4 tabs (emergentPrompt / lovablePrompt / markdownSpec / qaChecklist), content contains business fields (name, tagline, description, goal, CTA), Download + Regenerate + Copy buttons, Launch checklist with per-task toggles, progress %, strikethrough on complete, and 'Mark as launched' behaviour, and the Launched status chip on dashboard card. All flows work. Tested at 1440x900 and 1024x768 (tablet) — no layout regressions observed. Design polish is high (Linear/Notion-quality).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      { "flow": "Outputs > Copy button label", "issue": "The Copy button label flashes 'Copied' visually (screenshots + code confirm) but on click via Playwright in headless Chromium the label sometimes still reads 'Copy' after ~500ms — this appears to be a headless clipboard permission quirk (navigator.clipboard.writeText may fail silently). Toast handling still triggers 'Copied to clipboard' when clipboard access is granted. Not a code bug per se; consider adding a fallback (execCommand or a document.execCommand('copy') on a hidden textarea) to make copy reliable across environments.", "affected_selectors": ["outputs-copy-btn"] }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [".screenshots/01_dashboard_empty.png", ".screenshots/02_new_project.png", ".screenshots/03_wizard.png", ".screenshots/04_outputs.png", ".screenshots/05_launch.png", ".screenshots/06_tablet_dashboard.png", ".screenshots/07_tablet_new.png", ".screenshots/08_tablet_wizard.png"],
+  "action_items": [
+    "Optional: harden clipboard copy with an execCommand fallback so headless / non-secure contexts still show the 'Copied' state reliably.",
+    "Optional: consider adding aria-current='page' to the active sidebar section for accessibility (currently only visual styling communicates active state).",
+    "Optional (code-review): React Router v6 shows two future-flag warnings in console (v7_startTransition, v7_relativeSplatPath) — opt-in flags on BrowserRouter would silence them."
+  ],
+  "critical_code_review_comments": [
+    "DNA mapping uses `Name: dna?.business.name || dna?.profile.fullName` inside the 'Business' block for both Business and Portfolio templates. For portfolio projects, the DNA panel therefore labels the block 'Business' with the person's name — semantically slightly off. Consider a separate 'Profile' block for portfolio templates (or template-aware DNA block titles).",
+    "computeRecommendedBuilder ignores `template.builderRules.emergentSignals` — the switching to Emergent is hard-coded to features ['Booking link','Live chat']. Signals in builderRules are defined but unused. Not a bug for current templates but reduces the value of the data-driven contract.",
+    "Wizard.jsx side-effect of `updateProject` on every keystroke of the project name input writes to localStorage on every character — fine for MVP but consider debouncing for larger docs.",
+    "Outputs.jsx download extension is always '.md' via an unnecessary ternary (`active === 'markdownSpec' ? 'md' : active === 'qaChecklist' ? 'md' : 'md'`) — simplify.",
+    "In Wizard.jsx the right aside uses `absolute lg:static top-14` with `z-20`; at md widths (768–1024) the panel can be toggled with the DNA toggle button; verify overlay behaviour on real tablets — visually OK in this test."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (no backend)", "frontend": "100%" },
+  "test_credentials": "N/A — no auth",
+  "seed_data_creation": "None — tests created 'TEST Riverstone Studios' and 'TEST Alex Chen Portfolio' via UI. Cleared via UI delete during flow.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "App is frontend-only (localStorage key 'projectWizard.v1.projects'). Use page.evaluate(\"localStorage.clear()\") before each run to hit the empty dashboard state. All critical data-testids exist and are stable. Templates: 'business-website' (8 sections) and 'portfolio' (7 sections). Builder recommendation switches to 'emergent' when features include 'Booking link' or 'Live chat'. Copy button uses navigator.clipboard.writeText — headless environments may not grant clipboard permission by default; use context.grant_permissions(['clipboard-read','clipboard-write']) if strict copy verification is needed.",
+  "rca of the issue": "N/A — no failing test cases. Only advisory notes above."
+}
