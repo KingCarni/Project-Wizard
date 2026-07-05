@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Plus, ArrowRight, MoreHorizontal, Trash2, FileText, Rocket, Clock } from "lucide-react";
+import { Plus, ArrowRight, MoreHorizontal, Trash2, FileText, Clock, Sparkles } from "lucide-react";
 import TopBar from "../components/TopBar";
 import { listProjects, deleteProject } from "../lib/storage";
 import { getTemplate } from "../templates";
@@ -50,9 +50,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-bg" data-testid="dashboard-page">
       <TopBar />
-      <main className="max-w-[1200px] mx-auto px-6 py-14">
+      <main className="max-w-[1200px] mx-auto px-6 py-10">
         {/* Header */}
-        <div className="flex items-start justify-between gap-6 mb-10">
+        <div className="flex items-start justify-between gap-6 mb-8">
           <div className="animate-fade-in">
             <div className="pw-eyebrow mb-2">Dashboard</div>
             <h1 className="text-[34px] leading-tight tracking-tight font-semibold text-fg">
@@ -139,7 +139,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Footer row */}
-                    <div className="flex items-center justify-between text-xs text-fg-subtle mt-1">
+                    <div className="flex items-center justify-between text-xs text-fg-subtle mt-1 flex-wrap gap-y-1.5">
                       <span
                         className="pw-chip"
                         style={{ background: style.bg, color: style.fg, borderColor: "transparent" }}
@@ -147,7 +147,16 @@ export default function Dashboard() {
                       >
                         {p.status}
                       </span>
-                      <span className="flex items-center gap-1.5">
+                      <span
+                        className="pw-chip"
+                        style={{ fontSize: 10.5 }}
+                        title={`Building for ${p.selectedBuilder}`}
+                        data-testid={`project-builder-${p.id}`}
+                      >
+                        <Sparkles className="w-2.5 h-2.5" style={{ color: "var(--accent)" }} />
+                        <span className="capitalize">{p.selectedBuilder || "lovable"}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5" data-testid={`project-updated-${p.id}`}>
                         <Clock className="w-3 h-3" />
                         {timeAgo(p.updatedAt)}
                       </span>
@@ -163,7 +172,7 @@ export default function Dashboard() {
                       >
                         Continue <ArrowRight className="w-3 h-3" />
                       </Link>
-                      {p.generatedOutputs && (
+                      {p.generatedOutputs ? (
                         <Link
                           to={`/project/${p.id}/outputs`}
                           onClick={(e) => e.stopPropagation()}
@@ -171,6 +180,16 @@ export default function Dashboard() {
                           data-testid={`project-outputs-${p.id}`}
                         >
                           <FileText className="w-3 h-3" /> Outputs
+                        </Link>
+                      ) : (
+                        <Link
+                          to={`/project/${p.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="pw-btn pw-btn-subtle text-[12.5px] py-1.5"
+                          data-testid={`project-generate-${p.id}`}
+                          title="Continue then generate"
+                        >
+                          <Sparkles className="w-3 h-3" style={{ color: "var(--accent)" }} /> Generate
                         </Link>
                       )}
                     </div>
@@ -187,26 +206,48 @@ export default function Dashboard() {
 
 function EmptyState({ onNew }) {
   return (
-    <div className="relative overflow-hidden pw-card p-14 text-center" data-testid="dashboard-empty-state">
-      <div className="absolute inset-0 bg-grid opacity-40 pointer-events-none"
-           style={{ maskImage: "radial-gradient(circle at 50% 40%, black 20%, transparent 70%)" }} />
+    <div
+      className="relative overflow-hidden pw-card p-12 text-center"
+      style={{
+        background: "linear-gradient(180deg, var(--bg-elev) 0%, var(--cream-100, #f9f7f2) 100%)",
+        borderColor: "var(--border-strong)",
+      }}
+      data-testid="dashboard-empty-state"
+    >
+      {/* Grid + radial spot */}
+      <div
+        className="absolute inset-0 bg-grid opacity-[0.35] pointer-events-none"
+        style={{ maskImage: "radial-gradient(circle at 50% 30%, black 0%, transparent 65%)" }}
+      />
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          inset: "-40% 40% 40% 40%",
+          background: "radial-gradient(50% 50% at 50% 50%, rgba(95,34,207,0.10), transparent 70%)",
+        }}
+      />
       <div className="relative">
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6"
-          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
-        >
-          <Rocket className="w-6 h-6" strokeWidth={2.2} />
+        {/* Decorative stacked chips */}
+        <div className="flex items-center justify-center gap-2 mb-6 pw-stagger">
+          <span className="pw-chip" style={{ background: "var(--bg-elev)" }}>Interview</span>
+          <ArrowRight className="w-3 h-3 text-fg-subtle" />
+          <span className="pw-chip" style={{ background: "var(--bg-elev)" }}>Project DNA</span>
+          <ArrowRight className="w-3 h-3 text-fg-subtle" />
+          <span className="pw-chip accent">Builder-ready</span>
         </div>
-        <h2 className="text-[24px] font-semibold tracking-tight text-fg mb-2">
-          Start with a project, not a prompt.
+        <h2 className="text-[26px] font-semibold tracking-tight text-fg mb-2 leading-snug">
+          Start with a project, <span className="font-display" style={{ color: "var(--accent)" }}>not a prompt.</span>
         </h2>
-        <p className="text-fg-muted max-w-md mx-auto mb-7 text-[14.5px] leading-relaxed">
+        <p className="text-fg-muted max-w-md mx-auto mb-7 text-[14px] leading-relaxed">
           Answer a structured set of questions. Watch your Project DNA fill in. Generate builder-ready prompts for Emergent, Lovable, and more.
         </p>
         <button onClick={onNew} className="pw-btn pw-btn-accent" data-testid="empty-new-project-btn">
           <Plus className="w-4 h-4" strokeWidth={2.4} />
           Create your first project
         </button>
+        <div className="mt-4 text-[11.5px] text-fg-subtle">
+          5 templates ready · localStorage-only · no signup required
+        </div>
       </div>
     </div>
   );

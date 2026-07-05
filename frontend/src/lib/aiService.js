@@ -5,9 +5,40 @@
  */
 const API = process.env.REACT_APP_BACKEND_URL;
 
+async function callAPI(path, body) {
+  if (!API) {
+    throw new Error(
+      "REACT_APP_BACKEND_URL is not set. On a local build, add it to /app/frontend/.env and restart the dev server."
+    );
+  }
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    throw new Error(
+      `Cannot reach backend at ${API}${path}. Make sure the FastAPI server is running (locally: uvicorn on :8001) and REACT_APP_BACKEND_URL is correct.`
+    );
+  }
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const err = await res.json();
+      if (err?.detail) msg = err.detail;
+    } catch { /* noop */ }
+    if (res.status === 404) {
+      msg += ` — endpoint not found at ${API}${path}. On a local build, confirm the backend exposes this route and REACT_APP_BACKEND_URL points to it.`;
+    }
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
 /**
  * Generate all four outputs (Emergent, Lovable, Markdown spec, QA) from a Project object.
- * Returns { outputs: {...}, generatedBy: 'ai' } or throws.
  */
 export async function generateOutputsWithAI(project, template) {
   const payload = {
@@ -15,57 +46,29 @@ export async function generateOutputsWithAI(project, template) {
     templateName: template?.name || project.templateId,
     templateId: project.templateId,
     selectedBuilder: project.selectedBuilder,
-    recommendedBuilder: project.selectedBuilder, // client already reconciled
+    recommendedBuilder: project.selectedBuilder,
     answers: project.answers || {},
     contextFiles: (project.contextFiles || []).map((f) => ({
       name: f.name,
       size: f.size,
       type: f.type,
-      // Cap content per file to keep the payload reasonable.
       content: (f.content || "").slice(0, 4000),
     })),
   };
-
-  const res = await fetch(`${API}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    let msg = `Generate failed: HTTP ${res.status}`;
-    try {
-      const err = await res.json();
-      if (err?.detail) msg = err.detail;
-    } catch { /* noop */ }
-    throw new Error(msg);
-  }
-  const data = await res.json();
-  return {
-    outputs: data.outputs,
-    generatedBy: data.generatedBy || "ai",
-    model: data.model,
-  };
+  const data = await callAPI("/api/generate", payload);
+  return { outputs: data.outputs, generatedBy: data.generatedBy || "ai", model: data.model };
 }
 
 /**
  * Rewrite a single field. Returns a suggestion string.
- * `projectSummary` gives the model project-wide context so rewrites feel on-brand.
  */
 export async function rewriteFieldWithAI({ label, currentValue, projectSummary, guidance = "improve" }) {
-  const res = await fetch(`${API}/api/rewrite`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ label, currentValue: currentValue || "", projectSummary: projectSummary || "", guidance }),
+  const data = await callAPI("/api/rewrite", {
+    label,
+    currentValue: currentValue || "",
+    projectSummary: projectSummary || "",
+    guidance,
   });
-  if (!res.ok) {
-    let msg = `Rewrite failed: HTTP ${res.status}`;
-    try {
-      const err = await res.json();
-      if (err?.detail) msg = err.detail;
-    } catch { /* noop */ }
-    throw new Error(msg);
-  }
-  const data = await res.json();
   return data.suggestion;
 }
 

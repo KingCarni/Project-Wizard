@@ -140,8 +140,14 @@ KIND_SPECS = {
         "instructions": (
             "Write a builder prompt optimized for Lovable — a visual, marketing-first AI website builder. "
             "Prioritize polished UI, responsive design, marketing copy, brand personality, and conversion-focused CTAs. "
-            "Use rich Markdown structure with clear section headings (## Overview, ## Brand, ## Pages, ## Sections, "
-            "## Content, ## Features, ## Responsive & Accessibility, ## SEO, ## Acceptance Criteria). "
+            "Use rich Markdown structure with clear section headings (## Overview, ## Visual Identity, ## Brand, ## Pages, "
+            "## Sections, ## Content, ## Features, ## Responsive & Accessibility, ## SEO, ## Acceptance Criteria, ## Project Context). "
+            "The **Visual Identity** section MUST explicitly instruct: do NOT produce a generic AI-generated landing page "
+            "(no purple/blue gradient hero, no giant glowing CTA, no identical-card grids, no 'AI startup' aesthetic). "
+            "Ground the visual direction in the brand fields from the Project DNA. "
+            "Include a **Project Context** section that treats any uploaded documents as AUTHORITATIVE background — "
+            "list each file by name with a short excerpt, and instruct the builder to preserve any constraints, terminology, "
+            "or positioning found in those files. "
             "Never invent facts not present in the project data — mark missing info as '_(not specified)_'."
         ),
     },
@@ -149,10 +155,14 @@ KIND_SPECS = {
         "label": "Emergent Prompt",
         "instructions": (
             "Write a builder prompt optimized for Emergent — a full-stack AI product builder. "
-            "Include: ## Project Overview, ## App Structure (routes), ## Components (per page), "
-            "## Data Model (typed, future-ready), ## Feature Behaviour, ## Brand, ## Content Seeds, "
-            "## Setup Expectations, ## QA Acceptance Criteria, ## Launch Checklist. "
-            "Use TypeScript type snippets for data models. Include data-testid conventions for components. "
+            "Include: ## Project Overview, ## Visual Identity (with the anti-generic mandate below), "
+            "## App Structure (routes), ## Components (per page, each with data-testid conventions), "
+            "## Data Model (typed TypeScript snippets, future-ready), ## Feature Behaviour, ## Content Seeds, "
+            "## Setup Expectations, ## Acceptance Criteria (as checkboxes), ## Launch Checklist, ## Project Context. "
+            "The **Visual Identity** section MUST tell the builder: this must NOT look like a generic AI-generated landing page — "
+            "commit to a distinctive palette, type hierarchy, and layout grounded in the Project DNA brand fields. "
+            "The **Project Context** section MUST treat uploaded documents as AUTHORITATIVE — list each file by name, "
+            "include a short excerpt, and instruct the builder to preserve any explicit constraints or terminology from those files. "
             "Never invent facts not in the project data — mark missing info as '_(not specified)_'."
         ),
     },
@@ -160,8 +170,10 @@ KIND_SPECS = {
         "label": "Markdown Specification",
         "instructions": (
             "Write a human-readable Markdown project brief that a designer, developer, or AI (Claude/Cursor) can pick up cold. "
-            "Sections: # Title, ## Summary, ## Goals, ## Audience, ## Brand, ## Pages, ## Features, ## Content, "
-            "## SEO, ## Builder Recommendation, ## Launch Notes, ## Project Context. "
+            "Sections: # Title, ## Summary, ## Goals, ## Audience, ## Brand (with distinctive-identity mandate), ## Pages, "
+            "## Features, ## Content, ## SEO, ## Builder Recommendation, ## Launch Notes, ## Project Context. "
+            "The Project Context section MUST treat uploaded documents as AUTHORITATIVE background — list files by name, "
+            "excerpt them briefly, and instruct downstream consumers to honour their constraints. "
             "Be crisp — no fluff. Never invent facts."
         ),
     },
@@ -169,8 +181,10 @@ KIND_SPECS = {
         "label": "QA Checklist",
         "instructions": (
             "Write a pre-launch QA checklist as Markdown with GitHub-style checkboxes ('- [ ]'). "
-            "Sections: ## Navigation, ## Mobile Responsiveness, ## Forms & Interactions (specific to selected features), "
-            "## Accessibility, ## SEO Metadata, ## Content Review, ## Performance, ## Launch Readiness. "
+            "Sections: ## Brand Fidelity (first — verifies the site does NOT look like a generic AI-generated landing page, "
+            "and that constraints from uploaded Project Context are preserved), ## Navigation, ## Mobile Responsiveness, "
+            "## Forms & Interactions (specific to selected features), ## Accessibility, ## SEO Metadata, "
+            "## Content Review (verifies no invented facts), ## Performance, ## Launch Readiness. "
             "Tailor form checks to the features the user selected."
         ),
     },
@@ -180,10 +194,18 @@ KIND_SPECS = {
 def _build_llm_payload(req: GenerateRequest, kind: str) -> tuple[str, str]:
     spec = KIND_SPECS[kind]
     system = (
-        "You are a senior product manager + tech lead. You turn structured project data into "
-        "high-signal builder prompts and specs. Output only the requested Markdown document — no preamble, "
-        "no commentary, no code fences around the whole document. Use crisp headings and bullet lists. "
-        "When information is missing, write '_(not specified)_'; never make up business facts."
+        "You are a senior product manager + tech lead + brand director. "
+        "You turn structured project data into high-signal builder prompts and specs. "
+        "\n\n"
+        "Non-negotiables in every output you produce:\n"
+        "  1. Treat the provided Project DNA as the source of truth. Never invent business facts.\n"
+        "  2. Treat uploaded Project Context files as AUTHORITATIVE background — preserve their constraints and terminology.\n"
+        "  3. Refuse the generic AI-startup aesthetic — call it out and steer the builder away from it.\n"
+        "  4. When information is missing, write '_(not specified)_'. Do not fabricate.\n"
+        "  5. Every output ends with a Project Context section that lists each uploaded file by name with a short excerpt.\n"
+        "\n"
+        "Output only the requested Markdown document — no preamble, no commentary, no wrapping code fences. "
+        "Use crisp headings and bullet lists."
     )
 
     context_snippets = ""

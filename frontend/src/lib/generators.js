@@ -2,7 +2,13 @@
  * Deterministic output generators.
  *
  * Every generator takes the Project DNA object and produces a string.
- * When we add AI later, these become the fallback / seed prompts.
+ * When the LLM path fails (or is disabled), these are the fallback.
+ *
+ * Guiding principles baked into these prompts:
+ *  - Project DNA is the source of truth.
+ *  - Uploaded Project Context is AUTHORITATIVE background.
+ *  - Refuse generic AI-landing-page aesthetics.
+ *  - Every output has explicit acceptance criteria.
  */
 
 const NA = "_(not specified)_";
@@ -19,20 +25,61 @@ const h2 = (title) => `\n## ${title}\n`;
 const kv = (k, v) => `**${k}:** ${j(v)}`;
 
 /* -------------------------------------------------------------
-   Shared: uploaded context block
+   Universal prelude — every generated document leads with this.
+   Establishes Project DNA + Project Context as authoritative.
    ------------------------------------------------------------- */
+function prelude(dna) {
+  const lines = [];
+  lines.push("> **Read this first.**");
+  lines.push(">");
+  lines.push("> This document was exported from **Project Wizard**. It is the authoritative brief for the build.");
+  lines.push("> Every fact below originates from the project's structured **Project DNA** — treat the DNA as source of truth.");
+  lines.push(">");
+  lines.push("> **Do not invent business facts.** If a field is marked `_(not specified)_`, leave it as a labelled placeholder and note it in the build handoff. Never fabricate a customer name, testimonial, statistic, or product feature.");
+  lines.push("");
+  return lines.join("\n");
+}
+
 function contextBlock(dna) {
   const { notes, files } = dna.context;
   const lines = [];
-  if (notes) lines.push(`> ${notes}`);
-  if (files.length) {
-    lines.push("\n**Uploaded documents:**");
-    files.forEach((f) => {
-      lines.push(`- \`${f.name}\` (${(f.size / 1024).toFixed(1)} KB)`);
-      if (f.preview) lines.push(`  \n  > ${f.preview.replace(/\n/g, " ").slice(0, 200)}${f.preview.length > 200 ? "…" : ""}`);
-    });
+  lines.push("> Anything uploaded here is **authoritative background** — treat it with equal weight to the answered questions.");
+  lines.push("> Preserve any explicit constraints, terminology, positioning, or voice found in these documents.");
+  lines.push("");
+  if (notes) {
+    lines.push("**Author note:**");
+    lines.push(`> ${notes}`);
+    lines.push("");
   }
-  return lines.length ? lines.join("\n") : "_No additional context provided._";
+  if (files.length) {
+    lines.push(`**Uploaded documents (${files.length}):**`);
+    lines.push("");
+    files.forEach((f) => {
+      lines.push(`- **\`${f.name}\`** (${(f.size / 1024).toFixed(1)} KB) — ${f.type || "file"}`);
+      if (f.preview && f.preview.trim()) {
+        const excerpt = f.preview.replace(/\r?\n+/g, " ").slice(0, 320);
+        lines.push(`    > ${excerpt}${f.preview.length > 320 ? "…" : ""}`);
+      }
+    });
+    lines.push("");
+    lines.push("**Instruction to the builder:** Read every uploaded file in full before writing code. Any constraint, brand rule, terminology, or product decision found in these files overrides generic assumptions.");
+  } else {
+    lines.push("_(No additional context uploaded — rely on the answered questions above.)_");
+  }
+  return lines.join("\n");
+}
+
+/* -------------------------------------------------------------
+   Anti-generic block — appears in every builder prompt.
+   ------------------------------------------------------------- */
+function antiGenericBlock() {
+  return [
+    "> **Do not make this look like a generic AI-generated landing page.**",
+    ">",
+    "> Specifically avoid: purple/blue gradient heroes, giant glowing CTAs, centered stacks of identical cards with equal spacing, oversized floating illustrations, and the 'AI startup 2024' aesthetic.",
+    ">",
+    "> Build a **distinctive visual identity** grounded in the brand direction below — commit to a real palette, real type hierarchy, and confident asymmetric layouts where they fit.",
+  ].join("\n");
 }
 
 /* =============================================================
@@ -42,7 +89,9 @@ export function generateLovablePrompt(dna) {
   const p = dna;
   const out = [];
   out.push(header(`Build: ${j(p.meta.projectName)}`));
-  out.push(`_This prompt is for **Lovable** — optimize for polished visual design, marketing copy, and responsive layout._\n`);
+  out.push(`_Target builder: **Lovable**. Optimize for polished visual design, marketing copy, and responsive layout._`);
+  out.push("");
+  out.push(prelude(dna));
 
   out.push(h2("Project Overview"));
   out.push(kv("Template", p.meta.templateName));
@@ -53,14 +102,19 @@ export function generateLovablePrompt(dna) {
   out.push(kv("Primary goal", p.goals.primaryGoal));
   out.push(kv("Primary CTA", p.goals.primaryCTA));
 
-  out.push(h2("Brand Direction"));
+  out.push(h2("Visual Identity — read carefully"));
+  out.push(antiGenericBlock());
+  out.push("");
+  out.push("**Brand direction from Project DNA:**");
   out.push(kv("Primary color", p.brand.primaryColor));
   out.push(kv("Secondary color", p.brand.secondaryColor));
   out.push(kv("Tone", p.brand.tone));
   out.push(kv("Design style", p.brand.designStyle));
-  out.push(kv("Font style", p.brand.fontStyle));
+  out.push(kv("Font style preference", p.brand.fontStyle));
+  out.push(kv("Personality", p.brand.personality));
   if (p.brand.visualReferences?.length) {
-    out.push("\n**Visual references:**");
+    out.push("");
+    out.push("**Visual references (study these before designing):**");
     out.push(list(p.brand.visualReferences));
   }
 
@@ -68,43 +122,47 @@ export function generateLovablePrompt(dna) {
   out.push(list(p.pages.list));
 
   out.push(h2("Section Requirements"));
-  out.push("- Bold, editorial hero with clear headline + subheadline + primary CTA.");
-  out.push("- About section that establishes credibility.");
-  if (p.pages.services?.length) out.push("- Services section with icon + short description per service.");
-  if (p.pages.showTestimonials !== false) out.push("- Social proof / testimonials.");
-  if (p.pages.showFAQ) out.push("- FAQ section with an accordion pattern.");
-  out.push("- Contact section with clear next step.");
+  out.push("- Editorial, opinionated hero with a clear headline, subheadline, and single primary CTA. No 'AI-startup' stock aesthetic.");
+  out.push("- About / story section that establishes credibility. Real voice, not marketing filler.");
+  if (p.pages.services?.length) out.push("- Services section — icon or numbered index + concise description per service. Avoid identical-card gridlock.");
+  if (p.pages.showTestimonials !== false) out.push("- Social proof — quote only real testimonials from the DNA. If none, use a placeholder card labelled 'Add testimonial'.");
+  if (p.pages.showFAQ) out.push("- FAQ — accordion pattern, one question per row.");
+  out.push("- Contact section — clear next step, respects the tone of the rest of the site.");
 
-  out.push(h2("Content Requirements"));
+  out.push(h2("Content Seeds (from Project DNA)"));
   out.push(kv("Hero headline", p.content.heroHeadline));
   out.push(kv("Hero subheadline", p.content.heroSubheadline));
   out.push(kv("Services description", p.content.servicesDescription));
   out.push(kv("About notes", p.content.aboutNotes));
   if (p.content.testimonials?.length) {
-    out.push("\n**Testimonials:**");
+    out.push("");
+    out.push("**Testimonials (verbatim — do not rewrite):**");
     out.push(list(p.content.testimonials));
   }
   if (p.content.faqItems?.length) {
-    out.push("\n**FAQ items:**");
+    out.push("");
+    out.push("**FAQ items:**");
     out.push(list(p.content.faqItems));
   }
   if (p.work.featuredProjects?.length) {
-    out.push("\n**Featured projects:**");
+    out.push("");
+    out.push("**Featured projects:**");
     out.push(list(p.work.featuredProjects));
   }
 
   out.push(h2("Features"));
   out.push(list(p.features.list));
   if (p.features.socialLinks?.length) {
-    out.push("\n**Social links:**");
+    out.push("");
+    out.push("**Social links:**");
     out.push(list(p.features.socialLinks));
   }
 
   out.push(h2("Responsive & Accessibility"));
   out.push("- Mobile-first responsive layout (breakpoints at 640, 768, 1024, 1280).");
-  out.push("- All interactive elements reachable via keyboard.");
-  out.push("- Color contrast ≥ WCAG AA.");
-  out.push("- Alt text on all images.");
+  out.push("- All interactive elements reachable via keyboard, visible focus rings.");
+  out.push("- Color contrast ≥ WCAG AA on primary buttons and body text.");
+  out.push("- Alt text on every image.");
 
   out.push(h2("SEO"));
   out.push(kv("Meta title", p.seo.metaTitle));
@@ -113,13 +171,14 @@ export function generateLovablePrompt(dna) {
   if (p.seo.keywords?.length) out.push(kv("Keywords", p.seo.keywords));
 
   out.push(h2("Acceptance Criteria"));
-  out.push("- Every page in the list above exists and is reachable from the nav.");
-  out.push("- Brand colors and typography are applied consistently.");
-  out.push("- Hero clearly communicates value in the first 3 seconds.");
-  out.push("- Contact form or booking CTA works end-to-end.");
-  out.push("- Lighthouse: Performance ≥ 85, Accessibility ≥ 95, SEO ≥ 95 on desktop.");
+  out.push("- [ ] Every page listed above exists and is reachable from the primary nav.");
+  out.push("- [ ] Brand colors, typography, and personality are applied **consistently** — the site does not look like a generic AI-built landing page.");
+  out.push("- [ ] Hero communicates value in the first 3 seconds without reading below the fold.");
+  out.push("- [ ] Contact form (or primary CTA) works end-to-end.");
+  out.push("- [ ] Lighthouse: Performance ≥ 85, Accessibility ≥ 95, SEO ≥ 95 on desktop.");
+  out.push("- [ ] Any constraint from uploaded Project Context is honoured (voice, terminology, positioning).");
 
-  out.push(h2("Project Context"));
+  out.push(h2("Project Context — authoritative background"));
   out.push(contextBlock(dna));
 
   return out.join("\n");
@@ -132,7 +191,9 @@ export function generateEmergentPrompt(dna) {
   const p = dna;
   const out = [];
   out.push(header(`Build: ${j(p.meta.projectName)}`));
-  out.push(`_This prompt is for **Emergent** — architect for backend readiness, structured components, and clear acceptance criteria._\n`);
+  out.push(`_Target builder: **Emergent**. Architect for backend readiness, structured components, and explicit acceptance criteria._`);
+  out.push("");
+  out.push(prelude(dna));
 
   out.push(h2("Project Overview"));
   out.push(kv("Template", p.meta.templateName));
@@ -140,6 +201,14 @@ export function generateEmergentPrompt(dna) {
   out.push(kv("Description", p.business.description || p.profile.bio));
   out.push(kv("Audience", p.audience.description));
   out.push(kv("Primary goal", p.goals.primaryGoal));
+
+  out.push(h2("Visual Identity — do not skip"));
+  out.push(antiGenericBlock());
+  out.push("");
+  out.push(kv("Primary color", p.brand.primaryColor));
+  out.push(kv("Secondary color", p.brand.secondaryColor));
+  out.push(kv("Tone", p.brand.tone));
+  out.push(kv("Design style", p.brand.designStyle));
 
   out.push(h2("App Structure — Routes"));
   const pages = p.pages.list?.length ? p.pages.list : ["Home", "About", "Contact"];
@@ -155,6 +224,7 @@ export function generateEmergentPrompt(dna) {
   if (p.pages.showFAQ) out.push("- `FAQ` (accordion)");
   out.push("- `ContactForm`");
   out.push("- `Footer` (social + legal links)");
+  out.push("- All interactive elements have `data-testid` attributes for automation.");
 
   out.push(h2("Data Model (future-ready)"));
   out.push("```ts");
@@ -175,13 +245,7 @@ export function generateEmergentPrompt(dna) {
     out.push(`- **${f}**: ${featureSpec(f)}`);
   });
 
-  out.push(h2("Brand"));
-  out.push(kv("Primary color", p.brand.primaryColor));
-  out.push(kv("Secondary color", p.brand.secondaryColor));
-  out.push(kv("Tone", p.brand.tone));
-  out.push(kv("Design style", p.brand.designStyle));
-
-  out.push(h2("Content Seeds"));
+  out.push(h2("Content Seeds (from Project DNA)"));
   out.push(kv("Hero headline", p.content.heroHeadline));
   out.push(kv("Hero subheadline", p.content.heroSubheadline));
   out.push(kv("About notes", p.content.aboutNotes));
@@ -189,15 +253,17 @@ export function generateEmergentPrompt(dna) {
   out.push(h2("Setup Expectations"));
   out.push("- React + Tailwind + component-driven architecture.");
   out.push("- Environment variables for any external endpoint (contact submissions, analytics).");
-  out.push("- API routes structured under `/api/*` so backend can grow later.");
+  out.push("- API routes structured under `/api/*` so the backend can grow later.");
   out.push("- All page routes accessible via `react-router`.");
 
-  out.push(h2("QA Acceptance Criteria"));
-  out.push("- Every route renders without console errors.");
-  out.push("- Contact form validates required fields and shows a success state.");
-  out.push("- Mobile layout has no horizontal scroll at 375px width.");
-  out.push("- All interactive elements have `data-testid` attributes for QA automation.");
-  out.push("- SEO metadata is set per page.");
+  out.push(h2("Acceptance Criteria"));
+  out.push("- [ ] Every route renders without console errors.");
+  out.push("- [ ] Contact form validates required fields and shows a success state.");
+  out.push("- [ ] Mobile layout has no horizontal scroll at 375px width.");
+  out.push("- [ ] All interactive elements have `data-testid` attributes.");
+  out.push("- [ ] SEO metadata is set per page.");
+  out.push("- [ ] Distinctive visual identity — does **not** look like a generic AI-generated landing page.");
+  out.push("- [ ] Any constraint from uploaded Project Context is preserved.");
 
   out.push(h2("Launch Checklist"));
   out.push("- Deploy to Vercel (or preferred host).");
@@ -206,7 +272,7 @@ export function generateEmergentPrompt(dna) {
   out.push("- Verify contact form delivery to: `" + j(p.launch.contactDestination) + "`");
   out.push("- Announce launch.");
 
-  out.push(h2("Project Context"));
+  out.push(h2("Project Context — authoritative background"));
   out.push(contextBlock(dna));
 
   return out.join("\n");
@@ -240,7 +306,9 @@ export function generateMarkdownSpec(dna) {
   const p = dna;
   const out = [];
   out.push(header(`${j(p.meta.projectName)} — Project Specification`));
-  out.push(`_Generated by Project Wizard. Template: ${j(p.meta.templateName)}. Recommended builder: **${j(p.meta.recommendedBuilder)}**._`);
+  out.push(`_Generated by **Project Wizard**. Template: ${j(p.meta.templateName)}. Recommended builder: **${j(p.meta.recommendedBuilder)}**._`);
+  out.push("");
+  out.push(prelude(dna));
 
   out.push(h2("Summary"));
   out.push(j(p.business.description || p.profile.bio, "No description provided."));
@@ -258,6 +326,8 @@ export function generateMarkdownSpec(dna) {
   out.push(kv("Tone", p.brand.tone));
   out.push(kv("Design style", p.brand.designStyle));
   out.push(kv("Font style", p.brand.fontStyle));
+  out.push("");
+  out.push("> The visual identity must be distinctive and grounded in these choices. Do not settle for generic AI-startup aesthetics.");
 
   out.push(h2("Pages"));
   out.push(list(p.pages.list));
@@ -270,7 +340,8 @@ export function generateMarkdownSpec(dna) {
   out.push(kv("Hero subheadline", p.content.heroSubheadline));
   out.push(kv("About", p.content.aboutNotes));
   if (p.content.testimonials?.length) {
-    out.push("\n**Testimonials:**");
+    out.push("");
+    out.push("**Testimonials:**");
     out.push(list(p.content.testimonials));
   }
 
@@ -289,7 +360,7 @@ export function generateMarkdownSpec(dna) {
   out.push(kv("Analytics", p.launch.needsAnalytics));
   out.push(kv("Contact destination", p.launch.contactDestination));
 
-  out.push(h2("Project Context"));
+  out.push(h2("Project Context — authoritative background"));
   out.push(contextBlock(dna));
 
   return out.join("\n");
@@ -302,7 +373,15 @@ export function generateQAChecklist(dna) {
   const p = dna;
   const out = [];
   out.push(header(`QA Checklist — ${j(p.meta.projectName)}`));
-  out.push("_Walk through this list before you consider the build done._\n");
+  out.push("_Walk through this list before you consider the build done._");
+  out.push("");
+
+  out.push(h2("Brand Fidelity"));
+  out.push("- [ ] Site does **not** look like a generic AI-generated landing page.");
+  out.push("- [ ] Primary and secondary brand colors are applied consistently and used with intent.");
+  out.push("- [ ] Typography hierarchy is clear and matches the brand direction.");
+  out.push("- [ ] Voice matches the tone declared in the Project DNA.");
+  out.push("- [ ] Any constraint or vocabulary from uploaded Project Context files is preserved.");
 
   out.push(h2("Navigation"));
   out.push("- [ ] Every page in the site map is reachable from the main nav.");
@@ -353,6 +432,7 @@ export function generateQAChecklist(dna) {
   out.push("- [ ] Check for typos with fresh eyes (or a friend).");
   out.push("- [ ] Every CTA has a clear next step.");
   out.push("- [ ] Legal/policy pages exist if you collect data.");
+  out.push("- [ ] No invented facts — every business claim traces back to Project DNA or uploaded context.");
 
   out.push(h2("Performance"));
   out.push("- [ ] Largest Contentful Paint < 2.5s on 4G.");

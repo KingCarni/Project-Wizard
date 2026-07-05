@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 3 polish + generator/prompt rewrites tested end-to-end. Backend: 13/13 pytest pass (original 9 + 4 new iteration-3 tests) — sparse-answer /api/generate outputs contain '_(not specified)_' placeholders, uploaded contextFiles are referenced by name in AI output, QA checklist has 'Brand Fidelity' as the FIRST ## section (verified via first-h2 scan), Emergent prompt includes 'Visual Identity' + anti-generic mandate. Frontend Playwright: (1) Empty state renders new decorative chip flow (Interview → Project DNA → Builder-ready), serif italic 'not a prompt' accent, 'Create your first project' primary CTA, and the '5 templates ready · localStorage-only · no signup required' footnote (all verified in DOM). (2) Dashboard cards seeded with 3 projects render: name, template subtitle, health %, status chip, builder chip (testid project-builder-<id>) — 'emergent' for booking, 'lovable' for business & portfolio; time-ago label (project-updated-<id>); and hover quick actions — Continue always shows; Outputs link appears when generatedOutputs present; Generate quick action (project-generate-<id>) appears when it is absent. (3) Deterministic outputs (Lovable prompt, business-website) contain: '> **Read this first.**' prelude blockquote, '## Visual Identity — read carefully' section with the exact anti-generic paragraph, '## Project Context — authoritative background' at the end, '- [ ]' acceptance-criteria checkboxes including the brand-fidelity item, and the uploaded 'brand-voice.md' file referenced with size (0.3 KB) + a blockquoted excerpt. (4) QA checklist deterministic output has '## Brand Fidelity' as the very first ## section. (5) Fallback UX (simulated via Playwright route intercept returning 402 with detail 'Emergent Universal Key balance exhausted.') — yellow banner outputs-ai-error appears with the detail text, badge switches to amber 'Template (fallback)', description text becomes 'AI generation didn't complete — this is the template-based fallback.' (6) Rebuild from template after fallback clears the yellow banner AND switches badge back to neutral 'Template' (no more 'fallback'). (7) AI success path (simulated 200) — badge stays purple 'AI-generated', model chip shows 'claude-sonnet-4.5', no error banner. (8) Template picker regression: 5 available + 7 coming-soon rendered correctly. No React errors in console; only the two React-Router v6 future-flag warnings (acceptable per spec).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/generate",
+        "issue": "K8s ingress ~60s read-timeout can still occasionally translate a 45–60s Claude 4-way parallel run into a client-side 502 (carried over from iter 2). Frontend already handles this gracefully via the yellow banner + amber 'Template (fallback)' badge. Backend log will show 200 OK server-side. No functional regression, just a UX nuance to be aware of."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_iteration3.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "None required — all iteration-3 acceptance criteria verified. Optional: silence React Router v6 future-flag warnings (v7_startTransition, v7_relativeSplatPath) — still logged, but acceptable per spec."
+  ],
+  "critical_code_review_comments": [
+    "generators.js contextBlock reads dna.context.files/notes without a null guard on dna.context — buildProjectDNA always creates it in the current codebase, but a defensive `const { notes, files } = dna.context || { files: [], notes: '' };` would harden future refactors.",
+    "aiService.js callAPI uses try/catch on fetch to distinguish network vs HTTP errors. Good. However on a non-JSON 402 response the `try { const err = await res.json(); }` will swallow the parse error silently and fall back to 'HTTP 402'. Acceptable because the backend always returns JSON with detail, but worth noting.",
+    "server.py /api/generate still bubbles the FIRST parallel failure via `raise r` and drops any 3 successful outputs. When ingress times out one of the four kinds this discards useful data. Consider returning `outputs: {kindA: text, ...}` + a `partial: true` flag so frontend can render 3/4 AI + 1 template fallback.",
+    "Dashboard.jsx timeAgo function returns d.toLocaleDateString() for stale (>30d) dates which does not include the 'ago' semantic — minor copy nuance, not a bug.",
+    "Outputs.jsx: `project.aiFallback` flag is read but never cleared when user runs a successful AI generation AFTER a fallback — actually verified: generateWithAI sets aiFallback:false on success, so this is fine.",
+    "server.py CORS `allow_origins=['*']` with `allow_credentials=True` remains — flagged in iter 2, unchanged. Not a blocker without cookies, but flag before prod hardening."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration3.py (new — 4 pytest tests specific to iteration-3 prompt/generator changes)"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 pytest — 9 baseline + 4 new)",
+    "frontend": "100% (all iteration-3 acceptance items verified via Playwright)"
+  },
+  "test_credentials": "N/A — no auth. EMERGENT_LLM_KEY configured in /app/backend/.env, LLM ready (llm_ready:true from /api/health).",
+  "seed_data_creation": "Playwright tests seed localStorage key 'projectWizard.v1.projects' with TEST_-prefixed projects and clear between flows. Backend tests are stateless (no DB writes).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 3 focus was: (1) Dashboard card enrichment (builder chip, time-ago, Generate quick action), (2) empty-state polish (chip flow + footnote), (3) generators.js rewrite with prelude/antiGenericBlock/contextBlock helpers, (4) server.py KIND_SPECS strengthened with same principles, (5) aiService.js callAPI() with friendly errors, (6) three-state badge on Outputs page. Route intercept patterns work perfectly for testing fallback UX — return status=402 with body {detail:'...'} and the frontend yellow banner + amber 'Template (fallback)' badge lights up correctly. Preview URL: https://build-orchestrator-2.preview.emergentagent.com/. All key testids: dashboard-empty-state, empty-new-project-btn, project-builder-<id>, project-updated-<id>, project-generate-<id>, project-outputs-<id>, project-continue-<id>, outputs-generatedby-badge, outputs-ai-error, outputs-generate-ai-btn, outputs-regenerate-btn, outputs-tab-<kind>, outputs-content.",
+  "rca of the issue": "No blocking issue in iteration 3. Only carry-over nuance: K8s ingress 60s cap may occasionally cause /api/generate to return 502 to the client even though the backend completed 200; the frontend gracefully falls back to the deterministic template with a yellow banner, so the user is never stuck."
+}
