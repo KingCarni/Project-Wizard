@@ -56,7 +56,13 @@ export async function generateOutputsWithAI(project, template) {
     })),
   };
   const data = await callAPI("/api/generate", payload);
-  return { outputs: data.outputs, generatedBy: data.generatedBy || "ai", model: data.model };
+  return {
+    outputs: data.outputs,
+    generatedBy: data.generatedBy || "ai",
+    model: data.model,
+    partial: !!data.partial,
+    failures: data.failures || {},
+  };
 }
 
 /**

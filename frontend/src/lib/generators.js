@@ -41,7 +41,7 @@ function prelude(dna) {
 }
 
 function contextBlock(dna) {
-  const { notes, files } = dna.context;
+  const { notes, files } = dna.context || { notes: "", files: [] };
   const lines = [];
   lines.push("> Anything uploaded here is **authoritative background** — treat it with equal weight to the answered questions.");
   lines.push("> Preserve any explicit constraints, terminology, positioning, or voice found in these documents.");

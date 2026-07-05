@@ -45,12 +45,18 @@ Authoritative source-of-truth documents:
 - Deterministic generators for all 4 outputs
 - Launch checklist page with per-task toggles and "Mark as launched"
 
-### Iteration 2 (Current)
-- **LLM-powered generators** — Claude Sonnet 4.5 generates all 4 outputs from Project DNA (parallel fan-out). Uploaded Project Context files are included in the LLM prompt (capped at 4KB per file, top 5 files). Deterministic fallback runs automatically on any error.
-- **3 new full templates**: SaaS Landing Page (lovable), Restaurant Website (lovable), Booking App (emergent).
-- **Inline AI rewrite** on every text/textarea field via Gemini 3 Flash. Three guidance modes: Improve, Shorten, Punchier. Suggestions render in a purple card BELOW the field — user must click "Use this" to apply (never auto-overwrites).
-- **AI status tracking**: `generatedBy` ("ai" | "deterministic"), `generatedModel`, `generatedAt` are persisted per project. Shown as a badge + model chip.
-- **Graceful degradation**: Yellow error banner on any AI failure (budget exhausted, timeout, rate limit) with a clear message + automatic template fallback.
+### Iteration 3 (Current) — feedback fixes + polish
+- **Dashboard card enrichment** — each project card now shows a builder chip (Emergent / Lovable) with sparkle icon, a "time ago" label with its own testid, and a "Generate" quick action when outputs haven't been generated yet.
+- **Empty state polish** — decorative Interview → Project DNA → Builder-ready chip flow, warm-white gradient with a subtle purple radial spotlight, serif italic accent on the headline, footnote calling out '5 templates ready · localStorage-only · no signup required'. Reduced top whitespace.
+- **Stronger deterministic generators** — every generated output (Emergent, Lovable, Markdown spec, QA) now includes:
+  - Authoritative prelude: "Project DNA is the source of truth. Do not invent business facts."
+  - Anti-generic `## Visual Identity` mandate: "Do not make this look like a generic AI-generated landing page."
+  - `## Project Context — authoritative background` section that treats uploaded files as authoritative, lists each by name with excerpt.
+  - Explicit `- [ ]` acceptance criteria including brand-fidelity items.
+- **Stronger LLM system prompt** — same five non-negotiables baked into the Claude system prompt.
+- **AI service local-dev clarity** — friendly error messages when `REACT_APP_BACKEND_URL` is missing/misconfigured, backend unreachable, or a 404 is returned.
+- **Three-state Outputs badge**: purple "AI-generated", neutral "Template", amber "Template (fallback)" plus a new **"AI + template (partial)"** state — the partial-result contract lets us keep 3-of-4 AI outputs and fill the failing one with the template so the user is never fully blocked.
+- **Partial-result contract** — `/api/generate` now returns `{ outputs, partial, failures }`. The client fills any missing kinds with deterministic template output. If ALL four fail, the yellow fallback banner fires.
 
 ## User personas
 
@@ -61,24 +67,23 @@ Authoritative source-of-truth documents:
 ## Testing
 
 - Iteration 1: 100% pass (frontend, single browser flow).
-- Iteration 2: 100% pass (9/9 backend pytest, all 18 frontend acceptance items). Report: `/app/test_reports/iteration_2.json`.
+- Iteration 3: 100% pass (13/13 backend pytest, all frontend acceptance items). Report: `/app/test_reports/iteration_3.json`.
 
 ## Prioritized backlog / next tasks
 
 ### P0
-- **Streaming AI generation** — stream each output as it's written (SSE), so users see progress in real time instead of a 45–60s spinner.
-- **Partial-result contract** — if 3-of-4 kinds succeed, return the 3 AI outputs + note that 1 fell back to template.
+- **Streaming AI generation** (SSE) — stream outputs as Claude writes them (removes the 45–60s spinner).
 
 ### P1
 - **Auth + cloud sync** (JWT or Emergent Google Auth) so projects survive across devices.
-- **AI rewrite on richer field types** — multiselect suggestions ("here are 3 more features you might want"), keyword expansion.
-- **Deploy helpers** on Launch checklist — Vercel deploy button, GitHub push.
+- **Deploy helpers** on Launch checklist — Vercel deploy button, GitHub push flow, DNS verify.
+- **AI rewrite for richer field types** — multiselect suggestions, keyword expansion.
 
 ### P2
+- **Billing** (Stripe test key already available) — free tier w/ 3 projects + 5 AI generations, paid tier for unlimited.
 - **Team collaboration**, comments, mentions.
 - **Version history & diff** between generations.
 - **Admin template editor** — build templates via UI (not code).
-- **Stripe billing** — free tier with 3 projects + 5 AI generations, paid tier for unlimited.
 
 ## Known limitations
 

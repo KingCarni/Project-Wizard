@@ -132,6 +132,8 @@ class GenerateResponse(BaseModel):
     outputs: Dict[str, str]
     generatedBy: str = "ai"
     model: str = "anthropic/claude-sonnet-4-5-20250929"
+    partial: bool = False
+    failures: Dict[str, str] = Field(default_factory=dict)
 
 
 KIND_SPECS = {
@@ -256,17 +258,28 @@ async def generate(req: GenerateRequest):
         return kind, text
 
     # Run all 4 in parallel — dramatically improves total latency.
+    # Preserve any successful outputs even if one kind fails (partial-result contract).
     results = await asyncio.gather(*(run_kind(k) for k in kinds), return_exceptions=True)
 
     outputs: Dict[str, str] = {}
-    for r in results:
+    failures: Dict[str, str] = {}
+    for kind, r in zip(kinds, results):
         if isinstance(r, Exception):
-            # Bubble up first failure so client can fall back to deterministic.
-            raise r
-        kind, text = r
-        outputs[kind] = text
+            failures[kind] = getattr(r, "detail", str(r))[:240]
+        else:
+            _, text = r
+            outputs[kind] = text
 
-    return GenerateResponse(outputs=outputs)
+    if not outputs:
+        # Everything failed — surface the first failure so client can fall back.
+        first = next(iter(failures.items()))
+        raise HTTPException(status_code=502, detail=f"{first[0]}: {first[1]}")
+
+    return GenerateResponse(
+        outputs=outputs,
+        partial=bool(failures),
+        failures=failures,
+    )
 
 
 # ---------------------------------------------------------------------------
